@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Inspection Photo Editor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="drag-ghost"></div>
+<div id="toast"></div>
+
+<div id="ai-progress">
+  <div id="ai-progress-title">🤖 AI Analyzing Photos...</div>
+  <div id="ai-progress-sub">Please wait while Claude reviews your inspection photos</div>
+  <div id="ai-progress-bar-wrap"><div id="ai-progress-bar"></div></div>
+  <div id="ai-progress-count"></div>
+</div>
+
+<div id="toolbar">
+  <div class="tb-group">
+    <span class="tb-label">File</span>
+    <button class="tb-btn" id="btnNewJob" style="color:#ffaa44;border-color:#aa6600;">🗑<span>New Job</span></button>
+    <button class="tb-btn" id="btnImport"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Import Photos</span></button>
+    <button class="tb-btn" id="btnImportAdd" style="color:#88ffcc;border-color:#228855;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Add Photos</span></button>
+    <button class="tb-btn" id="btnExportThis"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Save This</span></button>
+    <button class="tb-btn" id="btnSavePhotos"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Save All</span></button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Cards</span>
+    <button class="tb-btn" id="btnAddCardTop">＋<span>Add Card</span></button>
+    <button class="tb-btn" id="btnProcess" style="background:#1a4a2e;color:#88ffcc;border-color:#228855;font-weight:bold;font-size:11px;padding:4px 10px;min-width:110px;">▶ Process<span>Apply &amp; AI</span></button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Sort</span>
+    <button class="tb-btn" id="btnSortMode" style="background:#2a1a4a;border-color:#7744aa;color:#ddb8ff;font-weight:bold;min-width:80px;">⊞ Sort<span>Photos</span></button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Tools</span>
+    <button class="tb-btn" id="toolSelect" data-tool="select"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-4 7z"/></svg><span>Select</span></button>
+    <button class="tb-btn" data-tool="arrow-left"><svg width="16" height="16" viewBox="0 0 24 24" fill="red" stroke="none"><polygon points="2,12 10,5 10,9 22,9 22,15 10,15 10,19"/></svg><span>Left</span></button>
+    <button class="tb-btn" data-tool="arrow-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="red" stroke="none"><polygon points="22,12 14,5 14,9 2,9 2,15 14,15 14,19"/></svg><span>Right</span></button>
+    <button class="tb-btn" data-tool="arrow-up"><svg width="16" height="16" viewBox="0 0 24 24" fill="red" stroke="none"><polygon points="12,2 19,10 15,10 15,22 9,22 9,10 5,10"/></svg><span>Up</span></button>
+    <button class="tb-btn" data-tool="arrow-down"><svg width="16" height="16" viewBox="0 0 24 24" fill="red" stroke="none"><polygon points="12,22 19,14 15,14 15,2 9,2 9,14 5,14"/></svg><span>Down</span></button>
+    <button class="tb-btn" data-tool="rect"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="1"/></svg><span>Rect</span></button>
+    <button class="tb-btn" data-tool="circle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2.5"><circle cx="12" cy="12" r="9"/></svg><span>Circle</span></button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Edit</span>
+    <button class="tb-btn" id="btnUndo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg><span>Undo</span></button>
+    <button class="tb-btn" id="btnClearAll" style="color:#ff7777"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg><span>Clear All</span></button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Navigate</span>
+    <button class="tb-btn" id="btnPrev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg><span>Prev</span></button>
+    <button class="tb-btn" id="btnNext"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg><span>Next</span></button>
+  </div>
+  <div class="tb-group">
+    <div id="ui-font-control">
+      <label>UI Font</label>
+      <input type="range" id="uiFontSizeRange" min="11" max="22" value="14" step="1">
+      <input type="number" id="uiFontSize" min="11" max="22" value="14">
+      <span class="tb-label">px</span>
+    </div>
+  </div>
+  <div class="tb-group">
+    <div id="defaultFontWrap">
+      <label>Caption Font</label>
+      <input type="number" id="defaultCaptionFont" min="8" max="80" value="32">
+      <span class="tb-label">px default</span>
+    </div>
+  </div>
+  <div class="tb-group" style="margin-left:auto;">
+    <button class="tb-btn" id="btnHelp" style="background:#2a1a4a;border-color:#7744aa;color:#ddb8ff;font-size:16px;font-weight:bold;min-width:36px;padding:4px 10px;">?<span>Help</span></button>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="help-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:5000;overflow-y:auto;">
+  <div id="help-inner" style="max-width:820px;margin:30px auto 60px;background:#1a1a2e;border:2px solid #444;border-radius:10px;padding:28px 32px;position:relative;font-family:'Segoe UI',sans-serif;">
+    <button id="btnHelpClose" style="position:absolute;top:14px;right:16px;background:#3a1a1a;border:1px solid #884444;color:#ffaaaa;font-size:18px;font-weight:bold;padding:4px 12px;border-radius:5px;cursor:pointer;">✕ Close</button>
+    <h1 style="font-size:26px;color:#f0c040;margin-bottom:4px;letter-spacing:1px;">📋 Quick Reference</h1>
+    <p style="font-size:11px;color:#666;margin-bottom:24px;text-transform:uppercase;letter-spacing:1px;">Home Inspection Photo Editor</p>
+
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#f0c040;border-left:4px solid #f0c040;padding-left:10px;margin-bottom:10px;">Basic Workflow</h2>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:22px;">
+      <div style="display:flex;gap:12px;background:#22223a;border:1px solid #33334a;border-radius:5px;padding:10px 14px;align-items:flex-start;"><span style="font-size:22px;color:#f0c040;font-weight:bold;min-width:24px;line-height:1;">1</span><div><strong style="color:#fff;">Import Photos</strong> — loads fresh batch. <span style="color:#888;">Add Photos</span> appends without clearing.</div></div>
+      <div style="display:flex;gap:12px;background:#22223a;border:1px solid #33334a;border-radius:5px;padding:10px 14px;align-items:flex-start;"><span style="font-size:22px;color:#f0c040;font-weight:bold;min-width:24px;line-height:1;">2</span><div><strong style="color:#fff;">Add Cards</strong> — click <span style="color:#88ffcc;">+</span> between photos or <span style="color:#88ffcc;">Add Card</span> in toolbar. Type group name or ##code into card. Drag to reorder.</div></div>
+      <div style="display:flex;gap:12px;background:#22223a;border:1px solid #33334a;border-radius:5px;padding:10px 14px;align-items:flex-start;"><span style="font-size:22px;color:#f0c040;font-weight:bold;min-width:24px;line-height:1;">3</span><div><strong style="color:#fff;">Click Apply Cards</strong> — assigns all captions based on your cards. <em style="color:#888;">Always click after arranging cards.</em></div></div>
+      <div style="display:flex;gap:12px;background:#22223a;border:1px solid #33334a;border-radius:5px;padding:10px 14px;align-items:flex-start;"><span style="font-size:22px;color:#f0c040;font-weight:bold;min-width:24px;line-height:1;">4</span><div><strong style="color:#fff;">Save &amp; Next</strong> through photos, then <strong style="color:#fff;">Save All</strong> to write files to folder.</div></div>
+    </div>
+
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#f0c040;border-left:4px solid #f0c040;padding-left:10px;margin-bottom:10px;">The Card System</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="background:#22223a;border:1px solid #f0c040;border-radius:5px;padding:12px;"><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Group Card — starts a group</div><code style="background:#0e2a1a;color:#88ffcc;border:1px solid #228855;padding:3px 8px;border-radius:3px;font-size:13px;">Water Heater</code><div style="margin-top:8px;font-size:12px;color:#888;line-height:1.6;">📷 Photo 1 → <span style="color:#aaddff;">"Water Heater"</span><br>📷 Photo 2 → <span style="color:#aaddff;">"View 2 - Water Heater"</span></div></div>
+      <div style="background:#22223a;border:1px solid #336699;border-radius:5px;padding:12px;"><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">##000 — close with label only</div><code style="background:#1a1a00;color:#88ccff;border:1px solid #336699;padding:3px 8px;border-radius:3px;font-size:13px;">##000</code><div style="margin-top:8px;font-size:12px;color:#888;line-height:1.6;">Closes group using group name as caption — no defect text.</div></div>
+      <div style="background:#22223a;border:1px solid #33334a;border-radius:5px;padding:12px;"><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">##code — close with defect caption</div><code style="background:#1a1a00;color:#f0c040;border:1px solid #886600;padding:3px 8px;border-radius:3px;font-size:13px;">##605</code><div style="margin-top:8px;font-size:12px;color:#888;line-height:1.6;">📷 Photo 1 → <span style="color:#ff6644;">"Safety Issue - TPR pipe..."</span><br>📷 Photo 2 → <span style="color:#aaddff;">"View 2 - Safety Issue..."</span></div></div>
+      <div style="background:#22223a;border:1px solid #33334a;border-radius:5px;padding:12px;"><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Multiple codes — combined caption</div><code style="background:#1a1a00;color:#f0c040;border:1px solid #886600;padding:3px 8px;border-radius:3px;font-size:13px;">##601##604##605</code><div style="margin-top:8px;font-size:12px;color:#888;line-height:1.6;">All captions joined with " - ". Any safety code = whole caption turns red + "Safety Issue - " prefix.</div></div>
+    </div>
+    <div style="background:#1a2a1a;border:1px solid #336633;border-left:4px solid #00cc66;border-radius:5px;padding:10px 14px;font-size:12px;color:#aaddaa;margin-bottom:22px;"><strong style="color:#00cc66;">Key rule:</strong> Every group needs one closing card — either <code style="background:#111;color:#88ccff;border:1px solid #333;padding:1px 4px;border-radius:2px;">##000</code> or a <code style="background:#111;color:#f0c040;border:1px solid #333;padding:1px 4px;border-radius:2px;">##code</code>. Ctrl+Z undoes accidental photo deletions.</div>
+
+    <div style="background:#2a1a00;border:1px solid #664400;border-left:4px solid #f0c040;border-radius:5px;padding:10px 14px;font-size:12px;color:#ddbb88;line-height:1.6;"><strong style="color:#f0c040;">Rebuild reminder:</strong> After editing index.html → run <code style="background:#111;color:#f0c040;border:1px solid #333;padding:1px 4px;border-radius:2px;">npx tauri build</code> from <code style="background:#111;color:#f0c040;border:1px solid #333;padding:1px 4px;border-radius:2px;">C:\Users\trade\HomeInspectionApp\</code> → uninstall old → install new MSI. Fill in API key in app.js manually.</div>
+  </div>
+</div>
+
+<!-- QUICK ADD PANEL -->
+<div id="quick-add-popup" style="display:none;position:fixed;z-index:4000;background:#141420;border:2px solid #444;border-left:3px solid #228855;box-shadow:6px 0 32px rgba(0,0,0,.85);font-family:'Segoe UI',sans-serif;flex-direction:column;">
+  <div style="display:flex;align-items:stretch;background:#1a1a2e;border-bottom:2px solid #444;flex-shrink:0;">
+    <button id="qa-tab-groups" style="flex:1;padding:10px 6px;border:none;border-bottom:3px solid #00cc88;background:#1a1a2e;color:#88ffcc;font-size:12px;font-weight:bold;cursor:pointer;letter-spacing:.3px;">📁 Groups</button>
+    <button id="qa-tab-codes" style="flex:1;padding:10px 6px;border:none;border-bottom:3px solid transparent;background:#1a1a2e;color:#666;font-size:12px;font-weight:bold;cursor:pointer;letter-spacing:.3px;">## Codes</button>
+    <button id="qa-close-btn" title="Close (Esc)" style="background:#3a1a1a;border:none;border-left:1px solid #444;color:#ffaaaa;font-size:14px;font-weight:bold;padding:6px 14px;cursor:pointer;">✕</button>
+  </div>
+  <div id="qa-pane-groups" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+    <div id="qa-groups-grid" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;"></div>
+    <div style="padding:8px 10px;border-top:1px solid #2a4a2a;background:#0a140a;flex-shrink:0;display:flex;gap:6px;">
+      <input id="qa-new-group-input" type="text" placeholder="Type group name + Enter to add &amp; insert..." style="flex:1;background:#1a2a1a;border:1px solid #336644;color:#88ffcc;padding:7px 10px;border-radius:4px;font-size:13px;outline:none;">
+    </div>
+  </div>
+  <div id="qa-pane-codes" style="flex:1;display:none;flex-direction:column;overflow:hidden;min-height:0;">
+    <div style="display:flex;flex:1;overflow:hidden;min-height:0;">
+      <div id="qa-code-tabs" style="width:88px;background:#100e00;border-right:1px solid #443a00;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+        <div id="qa-codes-list" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px;"></div>
+        <div style="padding:8px 10px;border-top:1px solid #443a00;background:#100e00;flex-shrink:0;">
+          <input id="qa-code-num-input" type="number" placeholder="Type code # + Enter to insert..." style="width:100%;background:#1a1a00;border:1px solid #665500;color:#f0c040;padding:7px 10px;border-radius:4px;font-size:13px;outline:none;" min="0">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="filmstrip"></div>
+
+  <div id="center-col">
+    <!-- SORT MODE OVERLAY -->
+    <div id="sort-mode-area" style="display:none;flex:1;overflow-y:auto;padding:12px;background:#222;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-shrink:0;">
+        <div style="font-size:16px;color:#ddb8ff;font-weight:bold;">⊞ Sort Mode — drag photos into category folders</div>
+        <div style="font-size:13px;color:#888;">Click to select · Shift+click multi-select · Drag to assign · Click assigned photo to move back</div>
+      </div>
+      <div id="sort-buckets" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;flex:1;"></div>
+    </div>
+    <div id="canvas-area">
+      <div id="no-photo-msg"><h2>📷 No Photos Loaded</h2><p>Click <strong>Import Photos</strong> to get started</p></div>
+      <div id="canvas-wrap" style="display:none">
+        <canvas id="mainCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+        <canvas id="interactCanvas"></canvas>
+      </div>
+    </div>
+    <div id="save-next-bar">
+      <div id="save-btn-row">
+        <button id="btnPrevBot">◀ Prev</button>
+        <button id="btnSaveNext">▶ Save &amp; Next</button>
+        <button id="btnNextBot">Next ▶</button>
+      </div>
+      <div id="inline-summary">
+        <div id="inline-summary-title">🔴 Red Caption Summary</div>
+        <div id="inline-summary-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="right-panel">
+    <div id="tab-bar">
+      <button class="tab-btn active" data-tab="caption">📝 Caption</button>
+      <button class="tab-btn" data-tab="codes">🔢 Codes</button>
+    </div>
+
+    <!-- CAPTION TAB -->
+    <div class="tab-pane active" id="tab-caption">
+      <div style="padding:10px;overflow-y:auto;flex:1;">
+        <div class="panel-section-title">Caption Box (Yellow)</div>
+        <textarea id="caption-text" placeholder="Type caption text..."></textarea>
+
+        <div id="caption-code-row">
+          <label>Code ##</label>
+          <div class="code-stepper">
+            <button class="code-step-btn" id="btnCodeDown" title="Previous code">−</button>
+            <input type="number" id="captionCodeNum" placeholder="403" min="1">
+            <button class="code-step-btn" id="btnCodeUp" title="Next code">+</button>
+          </div>
+          <span id="captionCodeStatus"></span>
+        </div>
+
+        <!-- Color + Apply on same line -->
+        <div class="cap-row" style="margin-top:8px;gap:6px;">
+          <button class="color-btn black selected" id="capColorBlack" onclick="setCaptionColor('black')">Black</button>
+          <button class="color-btn red" id="capColorRed" onclick="setCaptionColor('red')">Red</button>
+          <button id="btnApplyCaption" style="flex:1;padding:6px 10px;background:#f0c040;color:#000;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">Apply Caption</button>
+        </div>
+        <div class="cap-row">
+          <label>Caption Font:</label>
+          <div class="font-stepper">
+            <button class="font-step-btn" id="btnFontDown" title="Smaller">−</button>
+            <input type="number" id="captionFontSize" value="32" min="8" max="80" style="width:50px;background:#2a2a2a;border:1px solid #555;color:#f0c040;padding:4px;border-radius:3px;font-size:13px;text-align:center;">
+            <button class="font-step-btn" id="btnFontUp" title="Larger">+</button>
+          </div>
+          <label style="margin-left:6px;">px</label>
+        </div>
+        <button class="cap-btn dark-red" id="btnRemoveCaption">Remove Caption from Photo</button>
+      </div>
+    </div>
+
+    <!-- CODES TAB -->
+    <div class="tab-pane" id="tab-codes">
+      <div id="codes-header">
+        <div style="font-size:11px;text-transform:uppercase;color:#aaa;font-weight:bold;margin-bottom:6px;">Problem Code Reference</div>
+        <input type="text" id="codes-search" placeholder="🔍 Search codes..." autocomplete="off">
+        <select id="codes-cat-filter"><option value="ALL">— All Categories —</option></select>
+      </div>
+      <div id="codes-list"></div>
+      <div id="codes-add-form">
+        <div class="panel-section-title">➕ Add / Edit Code</div>
+        <div class="form-row">
+          <label>Code #:</label>
+          <input type="number" id="new-code-num" placeholder="e.g. 116">
+          <span id="new-code-num-status"></span>
+          <label>Short:</label>
+          <input type="text" id="new-code-short" placeholder="Brief description">
+        </div>
+        <div id="code-availability"></div>
+        <textarea id="new-code-caption" placeholder="Full caption text for photo..."></textarea>
+        <div class="form-row">
+          <label><input type="checkbox" id="new-code-safety"> &nbsp;Safety Issue</label>
+        </div>
+        <button id="btnAddCode">+ Add / Update Code</button>
+        <button id="btnPrintCodes">🖨 Print / Export Code Reference</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="status-bar">
+  <span id="statusLeft">No photos loaded — click Import Photos to begin</span>
+  <span id="statusRight">0/0 done</span>
+</div>
+
+<script src="codes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
