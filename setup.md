@@ -6,7 +6,7 @@ This document provides the necessary steps to configure and build the Home Inspe
 
 ### Anthropic API Key
 The application uses Claude (Anthropic) for AI-assisted photo analysis.
-- **File**: `app.js` (previously `index.html`)
+- **File**: `assets/js/app.js` (previously `index.html`)
 - **Variable**: `ANTHROPIC_API_KEY`
 - **Action**: Replace `'YOUR_API_KEY_HERE'` with your actual API key.
 

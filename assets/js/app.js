@@ -573,13 +573,117 @@ function drawArrow(c, ann) {
 
 // DrawCaption and WrapText are already in app.js
 
+function wrapText(c, text, maxW) {
+  const segments = text.split('\n');
+  const lines = [];
+  for (const seg of segments) {
+    if (seg === '') { lines.push(''); continue; }
+    const words = seg.split(' ');
+    let cur = '';
+    for (const w of words) {
+      const t = cur ? cur + ' ' + w : w;
+      if (c.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; }
+      else cur = t;
+    }
+    if (cur) lines.push(cur);
+  }
+  return lines;
+}
+
+function drawCaption(c, cap) {
+  const text = (cap.text || '').trim(); if (!text) return;
+  const canvasH = c.canvas.height, canvasW = c.canvas.width;
+  const padding = 16, boxW = Math.round(canvasW * 0.9), startX = Math.round((canvasW - boxW) / 2);
+  const maxTextW = boxW - padding, maxBoxH = Math.round(canvasH / 3);
+  let fs = cap.fontSize || 32;
+  c.save();
+  for (let attempt = 0; attempt < 20; attempt++) {
+    c.font = `${fs}px Arial`; const lines = wrapText(c, text, maxTextW);
+    const lh = fs * 1.45, boxH = lines.length * lh + 16;
+    if (boxH <= maxBoxH || fs <= 8) break;
+    fs = Math.max(8, Math.floor(fs * 0.88));
+  }
+  c.font = `${fs}px Arial`; const lines = wrapText(c, text, maxTextW), lh = fs * 1.45, boxH = lines.length * lh + 16;
+  let drawY = (cap.y === -1 || cap.y === 0) ? Math.round(canvasH * 0.78) : cap.y;
+  if (drawY + boxH > canvasH - 4) drawY = canvasH - boxH - 4;
+  if (drawY < 0) drawY = 0;
+  c.fillStyle = '#FFF8B0'; c.fillRect(startX, drawY, boxW, boxH);
+  c.strokeStyle = '#CCCC66'; c.lineWidth = 1.5; c.strokeRect(startX, drawY, boxW, boxH);
+  c.fillStyle = cap.color === 'red' ? '#CC0000' : '#000';
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  lines.forEach((l, i) => c.fillText(l, startX + boxW / 2, drawY + 8 + i * lh));
+  c.restore();
+  cap._boxW = boxW; cap._boxH = boxH; cap._drawY = drawY; cap._startX = startX;
+}
+
+function flattenToCanvas(photo, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const W = img.width, H = img.height;
+    const offscreen = document.createElement('canvas'); offscreen.width = W; offscreen.height = H;
+    const oc = offscreen.getContext('2d'); oc.drawImage(img, 0, 0, W, H);
+    const sr = W / photo._W;
+    oc.save(); oc.scale(sr, sr);
+    photo.annotations.forEach(ann => drawAnnotation(oc, { ...ann, size: (ann.size || 64) / state.scale }));
+    oc.restore();
+    if (photo.caption && photo.caption.text) drawCaption(oc, photo.caption);
+    callback(offscreen);
+  };
+  img.src = photo.url;
+}
+
+document.getElementById('btnSavePhotos').onclick = async () => {
+  const toSave = state.photos.filter(p => p.done || p.annotations.length > 0 || (p.caption && p.caption.text));
+  if (!toSave.length) { await message('No photos ready.', { title: 'Nothing to save', kind: 'warning' }); return; }
+  const folder = await openDialog({ directory: true }); if (!folder) return;
+  let saved = 0;
+  for (const photo of toSave) {
+    await new Promise(resolve => {
+      flattenToCanvas(photo, async (offscreen) => {
+        const newName = photo.name.replace(/\.[^.]+$/, '') + '_annotated.jpg';
+        const savePath = await join(folder, newName);
+        const blob = await new Promise(res => offscreen.toBlob(res, 'image/jpeg', 0.95));
+        await writeFile(savePath, new Uint8Array(await blob.arrayBuffer()));
+        saved++; setStatus(`Saving... ${saved}/${toSave.length}`); resolve();
+      });
+    });
+  }
+  await message(`${saved} photo(s) saved.`, { title: 'Done', kind: 'info' });
+};
+
+// QUICK ADD POPUP LOGIC
+const qa = { insertPos: 0, activeTab: 'groups' };
+function showQuickAddPopup(pos, anchorEl) {
+  qa.insertPos = pos;
+  const popup = document.getElementById('quick-add-popup');
+  const rect = anchorEl.getBoundingClientRect();
+  popup.style.top = rect.bottom + 'px'; popup.style.left = rect.left + 'px';
+  popup.style.display = 'flex';
+  renderQuickGroups();
+}
+document.getElementById('btnAddCardTop').onclick = (e) => showQuickAddPopup(0, e.target);
+
+function renderQuickGroups() {
+  const grid = document.getElementById('qa-groups-grid'); grid.innerHTML = '';
+  const common = ['Roofing', 'Exterior', 'Garage', 'Interiors', 'Structural', 'Plumbing', 'Electrical', 'HVAC', 'Insulation', 'Kitchen'];
+  common.forEach(grp => {
+    const btn = document.createElement('button'); btn.className = 'tb-btn'; btn.textContent = grp;
+    btn.onclick = () => { insertCardAt(qa.insertPos, { text: grp, cardMode: 'group' }); document.getElementById('quick-add-popup').style.display = 'none'; };
+    grid.appendChild(btn);
+  });
+}
+
 function populateCodesFilter() {
-  const sel = document.getElementById('codes-cat-filter'); sel.innerHTML = '<option value="ALL">— All Categories —</option>';
+  const sel = document.getElementById('codes-cat-filter'); if (!sel) return;
+  sel.innerHTML = '<option value="ALL">— All Categories —</option>';
   Object.entries(CODE_CATEGORIES).forEach(([code, cat]) => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
 }
 
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { if (e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') { e.preventDefault(); if (state.deletedPhotoStack.length) undoDeletePhoto(); else document.getElementById('btnUndo').click(); } }
+  if (e.key === 'Escape') document.getElementById('quick-add-popup').style.display = 'none';
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+    e.preventDefault(); if (state.deletedPhotoStack.length) undoDeletePhoto(); else document.getElementById('btnUndo').click();
+  }
 });
 
 async function init() {
